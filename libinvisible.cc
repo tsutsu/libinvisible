@@ -25,6 +25,8 @@
 #include <dirent.h>
 #include <fcntl.h>
 
+static bool invisible_filtering_active;
+
 static std::unordered_set<std::string> global_invisibles;
 static std::unordered_map<DIR *, std::unordered_set<std::string> > directory_invisibles;
 
@@ -105,6 +107,11 @@ void invisible_init (void)
   next_readdir64 = reinterpret_cast<readdir64_fptr>(reinterpret_cast<intptr_t>(dlsym(RTLD_NEXT, "readdir64")));
   next_closedir  = reinterpret_cast<closedir_fptr>(reinterpret_cast<intptr_t>(dlsym(RTLD_NEXT, "closedir")));
 
+  invisible_filtering_active = (getenv("USE_LIBINVISIBLE") != NULL);
+
+  if(!invisible_filtering_active)
+    return;
+
   load_invisibles_list(global_invisibles, "/etc/invisible");
 
   char user_invisibles_path[PATH_MAX];
@@ -117,7 +124,7 @@ inline bool is_hidden_metafile(struct dirent *entry) {
 }
 
 inline bool is_invisible(DIR *dir, const char *d_name) {
-  return (directory_invisibles[dir].count(d_name) == 1);
+  return invisible_filtering_active && (directory_invisibles[dir].count(d_name) == 1);
 }
 
 static bool get_original_dir_path(char *dest_path_buf, DIR *dir) {
@@ -129,8 +136,11 @@ static bool get_original_dir_path(char *dest_path_buf, DIR *dir) {
 
 static DIR *opendir_common(DIR *dir)
 {
+  if(!invisible_filtering_active)
+    return dir;
+
   if(!dir)
-  	return dir;
+    return dir;
 
   char own_path[PATH_MAX];
   get_original_dir_path(own_path, dir);
@@ -149,7 +159,9 @@ static DIR *opendir_common(DIR *dir)
 
 int closedir(DIR *dir)
 {
-  directory_invisibles.erase(dir);
+  if(invisible_filtering_active)
+    directory_invisibles.erase(dir);
+
   return next_closedir(dir);
 }
 

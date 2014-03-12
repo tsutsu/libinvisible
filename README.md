@@ -7,9 +7,11 @@ After installing libinvisible, GUI and command-line programs alike will find the
 
 ## How do I use it?
 
-Just `make install`.
+1. `make install`
 
-Hidden files should immediately stop being visible to any newly-launched process. To get already-running processes to use libinvisible, you will probably have to reboot.
+2. Put `export USE_LIBINVISIBLE=1` somewhere convenient, like your bashrc. (**Don't** put it where it will affect system startup scripts!)
+
+Hidden files should immediately stop being visible to any newly-launched process that inherits the env var. To get already-running processes to use libinvisible, you will probably have to reboot.
 
 
 ## How do I *stop* using it?
